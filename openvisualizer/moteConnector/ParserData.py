@@ -26,9 +26,8 @@ def init_pkt_info():
                         'src_id'      : None,
                         'counter'        : 0,
                         'latency'        : 0,
-                        'numCellsUsedTx' : 0,
-                        'numCellsUsedRx' : 0,
-                        'dutyCycle'      : 0
+                        'temp'           : 0,
+                        'neighbor_info'  : []
     }
 
 class ParserData(Parser.Parser):
@@ -128,7 +127,7 @@ class ParserData(Parser.Parser):
          
         # cross layer trick here. capture UDP packet from udpLatency and get ASN to compute latency.
         offset  = 0
-        if len(input) >37:
+        if len(input) >7:
             offset -= 7
             if self.UINJECT_MASK == ''.join(chr(i) for i in input[offset:]):
                                 
@@ -142,50 +141,30 @@ class ParserData(Parser.Parser):
                 diff                     = self._asndiference(aux,asnbytes)            # calculate difference 
                 pkt_info['latency']      = diff                                        # compute time in slots
                 offset -= 5
-                
-                pkt_info['numCellsUsedTx'] = input[offset-1]
-                offset -=1
-
-                pkt_info['numCellsUsedRx'] = input[offset-1]
-                offset -=1
 
                 pkt_info['src_id']       = ''.join(['%02x' % x for x in [input[offset-1],input[offset-2]]]) # mote id
                 src_id                   = pkt_info['src_id']
                 offset -=2
 
-                numTicksOn               = struct.unpack('<I',''.join([chr(c) for c in input[offset-4:offset]]))[0]
+                pkt_info['temp']         = struct.unpack('<i',''.join([chr(c) for c in input[offset-4:offset]]))[0]/4.0
                 offset -= 4
-
-                numTicksInTotal          = struct.unpack('<I',''.join([chr(c) for c in input[offset-4:offset]]))[0]
-                offset -= 4
-
-                pkt_info['dutyCycle']    = float(numTicksOn)/float(numTicksInTotal)    # duty cycle
+                
+                num_neighbors            = input[offset-1]
+                offset -= 1
+                
+                for i in range(num_neighbors):
+                    neighbor_addr = ''.join(['%02x' % x for x in [input[offset-1],input[offset-2]]]) # mote id
+                    offset -= 2
+                    
+                    rssi          =  struct.unpack('<b',''.join([chr(c) for c in input[offset-1:offset]]))[0]
+                    offset -= 1
+                    
+                    pkt_info['neighbor_info'].append( (neighbor_addr, rssi) )
                 
                 print pkt_info
                 with open('pkt_info.log'.format(),'a') as f:
                     f.write(str(pkt_info)+'\n')
                 
-                # self.avg_kpi:
-                if src_id in self.avg_kpi:
-                    self.avg_kpi[src_id]['counter'].append(pkt_info['counter'])
-                    self.avg_kpi[src_id]['latency'].append(pkt_info['latency'])
-                    self.avg_kpi[src_id]['numCellsUsedTx'].append(pkt_info['numCellsUsedTx'])
-                    self.avg_kpi[src_id]['numCellsUsedRx'].append(pkt_info['numCellsUsedRx'])
-                    self.avg_kpi[src_id]['dutyCycle'].append(pkt_info['dutyCycle'])
-                else:
-                    self.avg_kpi[src_id] = {
-                        'counter'        : [pkt_info['counter']],
-                        'latency'        : [pkt_info['latency']],
-                        'numCellsUsedTx' : [pkt_info['numCellsUsedTx']],
-                        'numCellsUsedRx' : [pkt_info['numCellsUsedRx']],
-                        'dutyCycle'      : [pkt_info['dutyCycle'] ],
-                        'avg_cellsUsage' : 0.0,
-                        'avg_latency'    : 0.0,
-                        'avg_pdr'        : 0.0
-                    }
-
-                if self.mqttconnected:
-                    self.publish_kpi(src_id)
 
                 # in case we want to send the computed time to internet..
                 # computed=struct.pack('<H', timeinus)#to be appended to the pkt
