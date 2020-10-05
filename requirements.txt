@@ -1,11 +1,11 @@
 pyzmq==15.4.0
-pyserial==2.6
+pyserial==3.4
 PyDispatcher==2.0.3
 bottle==0.11.6
 Sphinx==1.8.5
 netifaces
 yappi
-intelhex==2.1
+intelhex==2.2
 openwsn-coap
 pylint==1.6.0
 pycryptodome
@@ -14,3 +14,4 @@ hkdf
 paho-mqtt
 scapy
 pytest==4.6.9
+nrfutil==5.2.0
