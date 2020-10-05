@@ -84,6 +84,7 @@ def findSerialPorts(isIotMotes=False):
             while hasattr(probe, 'serial')==False:
                 pass
             tester = SerialTester(probe)
+            time.sleep(3)
             tester.setNumTestPkt(1)
             tester.setTimeout(2)
             tester.test(blocking=True)
@@ -282,6 +283,14 @@ class moteProbe(threading.Thread):
                 
                 if   self.mode==self.MODE_SERIAL:
                     self.serial = serial.Serial(self.serialport,self.baudrate,timeout=1,xonxoff=True,rtscts=False,dsrdtr=False)
+                    self.serial.dtr = 1
+                    self.serial.rts = 0
+                    time.sleep(1)
+                    
+                    # perform reset
+                    self.serial.dtr = 0
+                    time.sleep(1)
+                    self.serial.dtr = 1
                 elif self.mode==self.MODE_EMULATED:
                     self.serial = self.emulatedMote.bspUart
                 elif self.mode==self.MODE_IOTLAB:
