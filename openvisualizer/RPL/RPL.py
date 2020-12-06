@@ -288,8 +288,6 @@ class RPL(eventBusClient.eventBusClient):
         else:
             self.parentsDaoSeq[node].append(dao_header['RPL_DAO_Sequence'])
         
-        with open('dao_sequence.txt','a') as f:
-            f.write(str(self.parentsDaoSeq)+'\n')
         
         # if you get here, the DAO was parsed correctly
         
